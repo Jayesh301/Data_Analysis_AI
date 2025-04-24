@@ -12,6 +12,118 @@ An autonomous data analysis and visualization agent powered by Gemini 1.5 Flash.
 - Get instant visualizations and insights
 - Track your query history
 
+## Architecture
+
+```
+┌───────────────────────────────────────────────────────────────────────┐
+│                      DATA ANALYSIS AI ARCHITECTURE                     │
+└───────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│                           USER INTERFACE LAYER                         │
+├───────────────────────────────────────────────────────────────────────┤
+│                                                                       │
+│  ┌──────────────┐      ┌──────────────┐      ┌──────────────────┐    │
+│  │ File Uploader│      │ Auto-Analysis │      │ Query Interface  │    │
+│  │ (CSV/Excel)  │─────▶│   Results     │      │                  │    │
+│  └──────────────┘      └──────────────┘      └──────────────────┘    │
+│                                │                       │              │
+│                                ▼                       ▼              │
+│  ┌──────────────┐      ┌──────────────┐      ┌──────────────────┐    │
+│  │Data Preview  │      │Visualizations│      │Custom Analysis    │    │
+│  │              │      │& Navigation  │      │Results            │    │
+│  └──────────────┘      └──────────────┘      └──────────────────┘    │
+│                                                                       │
+└───────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│                           ANALYSIS LAYER                               │
+├───────────────────────────────────────────────────────────────────────┤
+│                                                                       │
+│  ┌─────────────────────────┐          ┌─────────────────────────┐    │
+│  │   AUTOMATIC ANALYSIS    │          │    NLP INTERPRETER      │    │
+│  │  (auto_analyzer.py)     │          │  (nlp_interpreter.py)   │    │
+│  ├─────────────────────────┤          ├─────────────────────────┤    │
+│  │ - Summary Statistics    │          │ - Natural Language      │    │
+│  │ - Data Type Detection   │          │   Query Processing      │    │
+│  │ - Visualization Creation │          │ - Query to Pandas Code  │    │
+│  │ - Correlation Analysis  │          │   Translation           │    │
+│  │ - Time Series Detection │          │ - Fallback Analysis     │    │
+│  │ - Insight Generation    │          │                         │    │
+│  └─────────────────────────┘          └─────────────────────────┘    │
+│                  │                                   │                │
+│                  ▼                                   ▼                │
+│  ┌─────────────────────────┐                                          │
+│  │    CODE EXECUTOR        │                                          │
+│  │   (code_executor.py)    │                                          │
+│  ├─────────────────────────┤                                          │
+│  │ - Safe Query Execution  │                                          │
+│  │ - Results Formatting    │                                          │
+│  │ - Error Handling        │                                          │
+│  └─────────────────────────┘                                          │
+│                                                                       │
+└───────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│                           AI SERVICES LAYER                            │
+├───────────────────────────────────────────────────────────────────────┤
+│                                                                       │
+│  ┌─────────────────────────┐          ┌─────────────────────────┐    │
+│  │  GEMINI AI (LLM)        │          │  DATA VISUALIZATION     │    │
+│  │                         │          │                         │    │
+│  ├─────────────────────────┤          ├─────────────────────────┤    │
+│  │ - Query Translation     │          │ - Matplotlib            │    │
+│  │ - Insight Generation    │          │ - Seaborn               │    │
+│  │ - Recommendations       │          │ - Interactive Charts     │    │
+│  └─────────────────────────┘          └─────────────────────────┘    │
+│                                                                       │
+└───────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│                           DEPLOYMENT LAYER                             │
+├───────────────────────────────────────────────────────────────────────┤
+│                                                                       │
+│  ┌─────────────────────────┐          ┌─────────────────────────┐    │
+│  │  STREAMLIT CLOUD        │          │  ALTERNATIVE OPTIONS    │    │
+│  │                         │          │                         │    │
+│  ├─────────────────────────┤          ├─────────────────────────┤    │
+│  │ - GitHub Integration    │          │ - Heroku                │    │
+│  │ - Environment Setup     │          │ - Render                │    │
+│  │ - API Key Security      │          │ - Railway               │    │
+│  │ - Free Tier Hosting     │          │ - Local Deployment      │    │
+│  └─────────────────────────┘          └─────────────────────────┘    │
+│                                                                       │
+└───────────────────────────────────────────────────────────────────────┘
+```
+
+## Component Descriptions
+
+### 1. User Interface Layer
+
+- **File Uploader**: Accepts CSV/Excel files from users
+- **Auto-Analysis Results**: Displays automatic insights and visualizations
+- **Query Interface**: Allows users to ask natural language questions
+
+### 2. Analysis Layer
+
+- **Automatic Analysis** (auto_analyzer.py): Performs data type detection, generates visualizations
+- **NLP Interpreter** (nlp_interpreter.py): Processes natural language queries
+- **Code Executor** (code_executor.py): Safely executes generated code
+
+### 3. AI Services Layer
+
+- **Gemini AI (LLM)**: Natural language understanding and insight generation
+- **Data Visualization**: Chart generation using Matplotlib/Seaborn
+
+### 4. Deployment Layer
+
+- **Streamlit Cloud**: Primary deployment platform with GitHub integration
+- **Alternative Options**: Additional deployment paths
+
 ## Setup for Local Development
 
 1. Clone this repository
@@ -68,3 +180,15 @@ Follow these steps to deploy the application for free:
 - "Show me the top 5 products by revenue"
 - "Create a scatter plot of price vs rating"
 - "Show distribution of ages by gender"
+
+## Note on Date Format Warnings
+
+When running the application, you may see warnings like:
+
+```
+UserWarning: Could not infer format, so each element will be parsed individually,
+falling back to `dateutil`. To ensure parsing is consistent and as-expected,
+please specify a format.
+```
+
+These warnings are expected when the application attempts to detect date columns in the dataset. They don't affect functionality and can be safely ignored.
