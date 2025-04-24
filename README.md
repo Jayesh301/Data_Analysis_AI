@@ -2,6 +2,10 @@
 
 An autonomous data analysis and visualization agent powered by Gemini 1.5 Flash.
 
+Live_Link : https://dataanalysisai.streamlit.app/
+
+![image](https://github.com/user-attachments/assets/895268a2-5c6e-4c3e-b374-a1f845db0155)
+
 ## Features
 
 - Automatic dataset analysis upon upload (no need to ask questions first!)
