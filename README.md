@@ -16,43 +16,43 @@ An autonomous data analysis and visualization agent powered by Gemini 1.5 Flash.
 
 ```
 ┌───────────────────────────────────────────────────────────────────────┐
-│                      DATA ANALYSIS AI ARCHITECTURE                     │
+│                      DATA ANALYSIS AI ARCHITECTURE                    │
 └───────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌───────────────────────────────────────────────────────────────────────┐
-│                           USER INTERFACE LAYER                         │
+│                           USER INTERFACE LAYER                        │
 ├───────────────────────────────────────────────────────────────────────┤
 │                                                                       │
-│  ┌──────────────┐      ┌──────────────┐      ┌──────────────────┐    │
-│  │ File Uploader│      │ Auto-Analysis │      │ Query Interface  │    │
-│  │ (CSV/Excel)  │─────▶│   Results     │      │                  │    │
-│  └──────────────┘      └──────────────┘      └──────────────────┘    │
+│  ┌──────────────┐       ┌──────────────┐      ┌──────────────────┐    │
+│  │ File Uploader│       │ Auto-Analysis│      │ Query Interface  │    │
+│  │ (CSV/Excel)  │────▶ │   Results     │      │                 │    │
+│  └──────────────┘       └──────────────┘      └──────────────────┘    │
 │                                │                       │              │
 │                                ▼                       ▼              │
-│  ┌──────────────┐      ┌──────────────┐      ┌──────────────────┐    │
-│  │Data Preview  │      │Visualizations│      │Custom Analysis    │    │
-│  │              │      │& Navigation  │      │Results            │    │
-│  └──────────────┘      └──────────────┘      └──────────────────┘    │
+│  ┌──────────────┐      ┌──────────────┐      ┌──────────────────┐     │
+│  │Data Preview  │      │Visualizations│      │Custom Analysis   │     │
+│  │              │      │& Navigation  │      │Results           │     │
+│  └──────────────┘      └──────────────┘      └──────────────────┘     │
 │                                                                       │
 └───────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌───────────────────────────────────────────────────────────────────────┐
-│                           ANALYSIS LAYER                               │
+│                           ANALYSIS LAYER                              │
 ├───────────────────────────────────────────────────────────────────────┤
 │                                                                       │
-│  ┌─────────────────────────┐          ┌─────────────────────────┐    │
-│  │   AUTOMATIC ANALYSIS    │          │    NLP INTERPRETER      │    │
-│  │  (auto_analyzer.py)     │          │  (nlp_interpreter.py)   │    │
-│  ├─────────────────────────┤          ├─────────────────────────┤    │
-│  │ - Summary Statistics    │          │ - Natural Language      │    │
-│  │ - Data Type Detection   │          │   Query Processing      │    │
-│  │ - Visualization Creation │          │ - Query to Pandas Code  │    │
-│  │ - Correlation Analysis  │          │   Translation           │    │
-│  │ - Time Series Detection │          │ - Fallback Analysis     │    │
-│  │ - Insight Generation    │          │                         │    │
-│  └─────────────────────────┘          └─────────────────────────┘    │
+│  ┌─────────────────────────┐          ┌─────────────────────────┐     │
+│  │   AUTOMATIC ANALYSIS    │          │    NLP INTERPRETER      │     │
+│  │  (auto_analyzer.py)     │          │  (nlp_interpreter.py)   │     │
+│  ├─────────────────────────┤          ├─────────────────────────┤     │
+│  │ - Summary Statistics    │          │ - Natural Language      │     │
+│  │ - Data Type Detection   │          │   Query Processing      │     │
+│  │ - Visualization Creation│          │ - Query to Pandas Code  │     │
+│  │ - Correlation Analysis  │          │   Translation           │     │
+│  │ - Time Series Detection │          │ - Fallback Analysis     │     │
+│  │ - Insight Generation    │          │                         │     │
+│  └─────────────────────────┘          └─────────────────────────┘     │
 │                  │                                   │                │
 │                  ▼                                   ▼                │
 │  ┌─────────────────────────┐                                          │
@@ -68,34 +68,34 @@ An autonomous data analysis and visualization agent powered by Gemini 1.5 Flash.
                                     │
                                     ▼
 ┌───────────────────────────────────────────────────────────────────────┐
-│                           AI SERVICES LAYER                            │
+│                           AI SERVICES LAYER                           │
 ├───────────────────────────────────────────────────────────────────────┤
 │                                                                       │
-│  ┌─────────────────────────┐          ┌─────────────────────────┐    │
-│  │  GEMINI AI (LLM)        │          │  DATA VISUALIZATION     │    │
-│  │                         │          │                         │    │
-│  ├─────────────────────────┤          ├─────────────────────────┤    │
-│  │ - Query Translation     │          │ - Matplotlib            │    │
-│  │ - Insight Generation    │          │ - Seaborn               │    │
-│  │ - Recommendations       │          │ - Interactive Charts     │    │
-│  └─────────────────────────┘          └─────────────────────────┘    │
+│  ┌─────────────────────────┐          ┌─────────────────────────┐     │
+│  │  GEMINI AI (LLM)        │          │  DATA VISUALIZATION     │     │
+│  │                         │          │                         │     │
+│  ├─────────────────────────┤          ├─────────────────────────┤     │
+│  │ - Query Translation     │          │ - Matplotlib            │     │
+│  │ - Insight Generation    │          │ - Seaborn               │     │
+│  │ - Recommendations       │          │ - Interactive Charts    │     │
+│  └─────────────────────────┘          └─────────────────────────┘     │
 │                                                                       │
 └───────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌───────────────────────────────────────────────────────────────────────┐
-│                           DEPLOYMENT LAYER                             │
+│                           DEPLOYMENT LAYER                            │
 ├───────────────────────────────────────────────────────────────────────┤
 │                                                                       │
-│  ┌─────────────────────────┐          ┌─────────────────────────┐    │
-│  │  STREAMLIT CLOUD        │          │  ALTERNATIVE OPTIONS    │    │
-│  │                         │          │                         │    │
-│  ├─────────────────────────┤          ├─────────────────────────┤    │
-│  │ - GitHub Integration    │          │ - Heroku                │    │
-│  │ - Environment Setup     │          │ - Render                │    │
-│  │ - API Key Security      │          │ - Railway               │    │
-│  │ - Free Tier Hosting     │          │ - Local Deployment      │    │
-│  └─────────────────────────┘          └─────────────────────────┘    │
+│  ┌─────────────────────────┐          ┌─────────────────────────┐     │
+│  │  STREAMLIT CLOUD        │          │  ALTERNATIVE OPTIONS    │     │
+│  │                         │          │                         │     │
+│  ├─────────────────────────┤          ├─────────────────────────┤     │
+│  │ - GitHub Integration    │          │ - Heroku                │     │
+│  │ - Environment Setup     │          │ - Render                │     │
+│  │ - API Key Security      │          │ - Railway               │     │
+│  │ - Free Tier Hosting     │          │ - Local Deployment      │     │
+│  └─────────────────────────┘          └─────────────────────────┘     │
 │                                                                       │
 └───────────────────────────────────────────────────────────────────────┘
 ```
