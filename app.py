@@ -8,6 +8,9 @@ import traceback
 from dotenv import load_dotenv
 from auto_analyzer import auto_analyze_dataset
 
+# Set up Streamlit page - MUST be the first Streamlit command
+st.set_page_config(page_title="Data Analysis AI", layout="wide")
+
 # Load environment variables
 load_dotenv()
 
@@ -24,8 +27,6 @@ if api_key:
 else:
     st.error("No API key found. Please add your GEMINI_API_KEY to .env file or Streamlit secrets.")
 
-# Set up Streamlit page
-st.set_page_config(page_title="Data Analysis AI", layout="wide")
 st.title("Data Analysis AI")
 
 # Create session state to store data
