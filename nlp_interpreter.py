@@ -1,9 +1,8 @@
 import google.generativeai as genai
 import pandas as pd
-import matplotlib.pyplot as plt
-import ast
 import traceback
 from code_executor import execute_query
+from utils import classify_columns, make_plot
 
 def process_query(question, dataframe):
     debug_info = {
@@ -15,7 +14,8 @@ def process_query(question, dataframe):
 
     try:
         debug_info["steps"].append("Started query generation")
-        pandas_query = generate_pandas_query(question, dataframe)
+        column_meta = classify_columns(dataframe)
+        pandas_query = generate_pandas_query(question, dataframe, column_meta)
         debug_info["pandas_query"] = pandas_query
         debug_info["steps"].append("Completed query generation")
 
@@ -29,7 +29,7 @@ def process_query(question, dataframe):
             return simplified_analysis(question, dataframe, debug_info)
 
         debug_info["steps"].append("Started insight generation")
-        insight = generate_insight(question, execution_result, dataframe)
+        insight = generate_insight(question, execution_result, dataframe, column_meta)
         debug_info["insight"] = insight
         debug_info["steps"].append("Completed insight generation")
 
@@ -61,55 +61,34 @@ def simplified_analysis(question, dataframe, debug_info):
     debug_info["steps"].append("Started simplified analysis")
     
     try:
-        # Create a simple figure based on the data type
-        fig, ax = plt.subplots(figsize=(10, 6))
-        
-        # Check if we can do a simple visualization
+        meta = classify_columns(dataframe)
+        fig = None
         if len(dataframe.columns) >= 2:
-            # Check for numeric columns
-            numeric_cols = dataframe.select_dtypes(include=['number']).columns.tolist()
+            numeric_cols = [col for col, typ in meta.items() if typ == "numeric"]
             if len(numeric_cols) >= 2:
-                # Simple scatter plot of first two numeric columns
-                x_col = numeric_cols[0]
-                y_col = numeric_cols[1]
-                ax.scatter(dataframe[x_col], dataframe[y_col])
-                ax.set_xlabel(x_col)
-                ax.set_ylabel(y_col)
-                ax.set_title(f"Scatter plot of {x_col} vs {y_col}")
-                debug_info["simplified_plot"] = f"Scatter plot of {x_col} vs {y_col}"
+                fig = make_plot(dataframe, numeric_cols[0], numeric_cols[1], title=f"Scatter plot of {numeric_cols[0]} vs {numeric_cols[1]}")
+                debug_info["simplified_plot"] = f"Scatter plot of {numeric_cols[0]} vs {numeric_cols[1]}"
             elif len(numeric_cols) == 1:
-                # Simple histogram of the numeric column
-                x_col = numeric_cols[0]
-                ax.hist(dataframe[x_col].dropna(), bins=20)
-                ax.set_xlabel(x_col)
-                ax.set_ylabel("Frequency")
-                ax.set_title(f"Distribution of {x_col}")
-                debug_info["simplified_plot"] = f"Histogram of {x_col}"
+                fig = make_plot(dataframe, numeric_cols[0], title=f"Distribution of {numeric_cols[0]}")
+                debug_info["simplified_plot"] = f"Histogram of {numeric_cols[0]}"
             else:
-                # Simple bar chart of the first categorical column counts
-                if len(dataframe.columns) > 0:
-                    cat_col = dataframe.columns[0]
-                    dataframe[cat_col].value_counts().head(10).plot(kind='bar', ax=ax)
-                    ax.set_ylabel("Count")
-                    ax.set_title(f"Top 10 values in {cat_col}")
-                    debug_info["simplified_plot"] = f"Bar chart of {cat_col}"
+                cat_cols = [col for col, typ in meta.items() if typ == "categorical"]
+                if cat_cols:
+                    fig = make_plot(dataframe, cat_cols[0], title=f"Top values in {cat_cols[0]}")
+                    debug_info["simplified_plot"] = f"Bar chart of {cat_cols[0]}"
                 else:
-                    ax.text(0.5, 0.5, "Unable to create visualization - no suitable columns found", 
-                            ha='center', va='center')
+                    import matplotlib.pyplot as plt
+                    fig, ax = plt.subplots(figsize=(10, 6))
+                    ax.text(0.5, 0.5, "Unable to create visualization - no suitable columns found", ha='center', va='center')
                     debug_info["simplified_plot"] = "No visualization possible"
         else:
-            ax.text(0.5, 0.5, "Not enough columns for visualization", 
-                    ha='center', va='center')
+            import matplotlib.pyplot as plt
+            fig, ax = plt.subplots(figsize=(10, 6))
+            ax.text(0.5, 0.5, "Not enough columns for visualization", ha='center', va='center')
             debug_info["simplified_plot"] = "Not enough columns"
-        
-        fig.tight_layout()
-        
-        # Generate a basic summary of the data
         insight = f"I couldn't perform the specific analysis you asked for: '{question}' due to technical issues. "
         insight += "Here's a basic summary of your data:\n\n"
         insight += f"- Your dataset has {dataframe.shape[0]} rows and {dataframe.shape[1]} columns.\n"
-        
-        # Add info about missing values
         missing_values = dataframe.isna().sum()
         if missing_values.sum() > 0:
             insight += f"- There are {missing_values.sum()} missing values in the dataset.\n"
@@ -118,40 +97,33 @@ def simplified_analysis(question, dataframe, debug_info):
                 insight += "- Columns with most missing values: "
                 insight += ", ".join([f"{col} ({val})" for col, val in top_missing.items()])
                 insight += "\n"
-        
-        # Add info about numeric columns
-        numeric_cols = dataframe.select_dtypes(include=['number']).columns.tolist()
+        numeric_cols = [col for col, typ in meta.items() if typ == "numeric"]
         if numeric_cols:
             insight += f"- There are {len(numeric_cols)} numeric columns: {', '.join(numeric_cols[:5])}"
             if len(numeric_cols) > 5:
                 insight += f" and {len(numeric_cols) - 5} more."
             insight += "\n"
-        
         debug_info["steps"].append("Completed simplified analysis")
-        
         return {
             "insight": insight,
             "figure": fig,
             "debug_info": debug_info
         }
-        
     except Exception as e:
-        # If even simplified analysis fails, return just an error message
+        import matplotlib.pyplot as plt
         error_msg = str(e)
         fig, ax = plt.subplots()
         ax.text(0.5, 0.5, f"Unable to analyze data: {error_msg}", ha='center', va='center')
         ax.axis('off')
-        
         debug_info["simplified_analysis_error"] = error_msg
         debug_info["steps"].append(f"Simplified analysis failed: {error_msg}")
-        
         return {
             "insight": f"I couldn't analyze your question: '{question}' due to technical issues: {error_msg}",
             "figure": fig,
             "debug_info": debug_info
         }
 
-def generate_pandas_query(question, dataframe):
+def generate_pandas_query(question, dataframe, column_meta=None):
     """
     Use Gemini to generate a pandas query string based on the user's question
     
@@ -162,21 +134,21 @@ def generate_pandas_query(question, dataframe):
     Returns:
         str: A pandas query that answers the question
     """
-    # Get dataframe metadata for context
     data_info = {
         "columns": list(dataframe.columns),
         "dtypes": {col: str(dataframe[col].dtype) for col in dataframe.columns},
         "sample_data": dataframe.head(3).to_dict(orient="records"),
         "missing_values": dataframe.isna().sum().to_dict(),
-        "shape": dataframe.shape
+        "shape": dataframe.shape,
+        "column_meta": column_meta if column_meta else {}
     }
-    
     prompt = f"""
     You are a pandas expert who generates precise query strings for data analysis.
     
     I have a pandas DataFrame with the following information:
     Columns: {data_info['columns']}
     Data Types: {data_info['dtypes']}
+    Column Types: {data_info['column_meta']}
     Sample Data: {data_info['sample_data']}
     Missing Values: {data_info['missing_values']}
     Shape: {data_info['shape']}
@@ -212,7 +184,7 @@ def generate_pandas_query(question, dataframe):
     
     return query.strip()
 
-def generate_insight(question, execution_result, dataframe):
+def generate_insight(question, execution_result, dataframe, column_meta=None):
     """
     Use Gemini to generate insights based on the analysis results
     """
@@ -244,6 +216,7 @@ def generate_insight(question, execution_result, dataframe):
     Query result: {result_data}
     Description: {result_description}
     {error_info}
+    Column Types: {column_meta}
     
     Provide a concise, insightful explanation of what the results mean in 2-3 sentences. 
     Focus on the most important patterns or findings. Use simple language that a business user would understand.

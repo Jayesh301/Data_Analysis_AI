@@ -1,9 +1,8 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 import google.generativeai as genai
 import warnings
+from utils import classify_columns, make_plot
 
 def auto_analyze_dataset(dataframe):
     """
@@ -25,65 +24,52 @@ def auto_analyze_dataset(dataframe):
     }
     
     try:
-        # Create a copy of the dataframe to avoid any issues
         df = dataframe.copy()
-        
-        # 1. Basic dataset summary
+        # 1. Show missing-value table before cleaning
+        missing_tbl = df.isna().sum().reset_index()
+        missing_tbl.columns = ["Column", "Missing_Count"]
+        results["summary"]["missing_table"] = missing_tbl
+        # 2. Clean the data
+        from utils import clean_dataframe
+        clean_df = clean_dataframe(df)
+        results["summary"]["clean_shape"] = clean_df.shape
+        # 3. Continue analysis on cleaned df
+        df = clean_df
+        meta = classify_columns(df)
         results["summary"]["shape"] = df.shape
         results["summary"]["columns"] = list(df.columns)
         results["summary"]["dtypes"] = {col: str(df[col].dtype) for col in df.columns}
         results["summary"]["missing_values"] = df.isna().sum().to_dict()
         results["summary"]["missing_percentage"] = (df.isna().sum() / len(df) * 100).to_dict()
-        
-        # 2. Numeric columns analysis
-        numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
+        numeric_cols = [col for col, typ in meta.items() if typ == "numeric"]
+        categorical_cols = [col for col, typ in meta.items() if typ == "categorical"]
+        date_cols = [col for col, typ in meta.items() if typ == "date"]
         results["summary"]["numeric_columns"] = numeric_cols
-        
+        results["summary"]["categorical_columns"] = categorical_cols
+        results["summary"]["date_columns"] = date_cols
         if numeric_cols:
-            # Calculate summary statistics for numeric columns
             results["summary"]["numeric_stats"] = df[numeric_cols].describe().to_dict()
-            
-            # Create distribution plots for numeric columns (up to 4)
-            for i, col in enumerate(numeric_cols[:4]):
-                fig, ax = plt.subplots(figsize=(10, 6))
-                sns.histplot(df[col].dropna(), kde=True, ax=ax)
-                ax.set_title(f"Distribution of {col}")
-                plt.tight_layout()
+            for col in numeric_cols[:4]:
+                fig = make_plot(df, col, title=f"Distribution of {col}")
                 results["visualizations"].append({
                     "title": f"Distribution of {col}",
                     "type": "histogram",
                     "figure": fig,
                     "column": col
                 })
-        
-        # 3. Categorical columns analysis
-        categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
-        results["summary"]["categorical_columns"] = categorical_cols
-        
         if categorical_cols:
-            # Create bar charts for categorical columns (up to 4)
-            for i, col in enumerate(categorical_cols[:4]):
-                # Only show the top 10 categories to avoid overcrowding
-                value_counts = df[col].value_counts().head(10)
-                
-                fig, ax = plt.subplots(figsize=(10, 6))
-                sns.barplot(x=value_counts.index, y=value_counts.values, ax=ax)
-                ax.set_title(f"Top 10 values in {col}")
-                plt.xticks(rotation=45, ha='right')
-                plt.tight_layout()
+            for col in categorical_cols[:4]:
+                fig = make_plot(df, col, title=f"Top values in {col}")
                 results["visualizations"].append({
                     "title": f"Top values in {col}",
                     "type": "bar",
                     "figure": fig,
                     "column": col
                 })
-        
-        # 4. Correlation analysis (if at least 2 numeric columns)
         if len(numeric_cols) >= 2:
-            # Correlation matrix
             corr_matrix = df[numeric_cols].corr()
-            
-            # Plot correlation heatmap
+            import matplotlib.pyplot as plt
+            import seaborn as sns
             fig, ax = plt.subplots(figsize=(10, 8))
             sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', center=0, ax=ax)
             ax.set_title("Correlation Matrix")
@@ -94,25 +80,16 @@ def auto_analyze_dataset(dataframe):
                 "figure": fig,
                 "columns": numeric_cols
             })
-            
-            # Find highest correlations
             corr_pairs = []
             for i in range(len(numeric_cols)):
                 for j in range(i+1, len(numeric_cols)):
                     col1, col2 = numeric_cols[i], numeric_cols[j]
                     corr = corr_matrix.loc[col1, col2]
-                    if not np.isnan(corr) and abs(corr) > 0.5:  # Only strong correlations
+                    if not np.isnan(corr) and abs(corr) > 0.5:
                         corr_pairs.append((col1, col2, corr))
-            
-            # Sort by absolute correlation value
             corr_pairs.sort(key=lambda x: abs(x[2]), reverse=True)
-            
-            # Create scatter plots for top correlated pairs (up to 3)
-            for i, (col1, col2, corr) in enumerate(corr_pairs[:3]):
-                fig, ax = plt.subplots(figsize=(10, 6))
-                sns.scatterplot(x=df[col1], y=df[col2], ax=ax)
-                ax.set_title(f"Scatter plot of {col1} vs {col2} (corr: {corr:.2f})")
-                plt.tight_layout()
+            for col1, col2, corr in corr_pairs[:3]:
+                fig = make_plot(df, col1, col2, title=f"Scatter plot of {col1} vs {col2} (corr: {corr:.2f})")
                 results["visualizations"].append({
                     "title": f"Relationship: {col1} vs {col2}",
                     "type": "scatter",
@@ -120,70 +97,26 @@ def auto_analyze_dataset(dataframe):
                     "columns": [col1, col2],
                     "correlation": corr
                 })
-        
-        # 5. Time series detection and visualization
-        date_cols = []
-        for col in df.columns:
-            try:
-                if pd.api.types.is_object_dtype(df[col]):
-                    # Try to convert to datetime with explicit format where possible
-                    # Suppress the warning by using try-except
-                    with warnings.catch_warnings():
-                        warnings.simplefilter("ignore")
-                        test_date = pd.to_datetime(df[col], errors='coerce')
-                        # If at least 90% of values converted successfully, consider it a date column
-                        if test_date.notna().sum() / len(test_date) > 0.9:
-                            date_cols.append(col)
-            except:
-                pass
-        
-        results["summary"]["date_columns"] = date_cols
-        
-        # If we have date columns and numeric columns, create time series plots
         if date_cols and numeric_cols:
-            date_col = date_cols[0]  # Use the first date column found
+            date_col = date_cols[0]
             try:
-                # Convert to datetime
                 df[date_col] = pd.to_datetime(df[date_col])
-                
-                # Select top 3 numeric columns
                 for col in numeric_cols[:3]:
-                    # Create a time series plot
-                    fig, ax = plt.subplots(figsize=(12, 6))
-                    
-                    # Group by month and take mean if dataset is large
-                    if len(df) > 100:
-                        time_data = df.set_index(date_col)[col].resample('M').mean()
-                        time_data.plot(ax=ax)
-                        title = f"Monthly trend of {col}"
-                    else:
-                        df.plot(x=date_col, y=col, ax=ax)
-                        title = f"Trend of {col} over time"
-                    
-                    ax.set_title(title)
-                    plt.tight_layout()
+                    fig = make_plot(df, date_col, col, title=f"Trend of {col} over time")
                     results["visualizations"].append({
-                        "title": title,
+                        "title": f"Trend of {col} over time",
                         "type": "time_series",
                         "figure": fig,
                         "columns": [date_col, col]
                     })
             except Exception as e:
-                # If time series visualization fails, add error to results but continue
                 results["summary"]["time_series_error"] = str(e)
-        
-        # 6. Generate insights using Gemini
         insights = generate_dataset_insights(df, results["summary"], results["visualizations"])
         results["insights"] = insights
-        
-        # 7. Generate analysis recommendations based on data
         recommendations = generate_recommendations(df, results["summary"])
         results["recommendations"] = recommendations
-        
     except Exception as e:
-        # If analysis fails, return the error
         results["error"] = str(e)
-        
     return results
 
 def generate_dataset_insights(dataframe, summary, visualizations):
