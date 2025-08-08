@@ -233,69 +233,92 @@ if uploaded_file is not None:
         if st.session_state.debug:
             st.error(traceback.format_exc())
 
-# Data analysis section for user questions
+# Custom Analysis Chat Interface
 if st.session_state.df is not None:
-    st.header("Ask Questions About Your Data")
-    user_question = st.text_input("Enter your question about the data:")
+    st.header("💬 Custom Analysis Chat")
     
-    if st.button("Analyze"):
-        if user_question:
-            with st.spinner("Analyzing your data..."):
-                try:
-                    # Save the question to history
-                    st.session_state.query_history.append(user_question)
-                    
-                    # Process the question
-                    from nlp_interpreter import process_query
-                    result = process_query(user_question, st.session_state.df)
-                    
-                    # Display results
-                    st.subheader("Results")
-                    st.write(result["insight"])
-                    
-                    if "figure" in result and result["figure"] is not None:
-                        fig = result["figure"]
-                        if isinstance(fig, go.Figure):
-                            st.plotly_chart(fig, use_container_width=True)
-                        elif isinstance(fig, plt.Figure):
-                            st.pyplot(fig)
-                        else:
-                            st.warning(f"Unsupported figure type: {type(fig)}")
+    # Initialize chat history if not exists
+    if 'chat_history' not in st.session_state:
+        st.session_state.chat_history = []
+    
+    # Chat interface
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        user_question = st.text_input("Ask for custom charts or analysis:", 
+                                    placeholder="e.g., 'Show correlation between price and rating', 'Create a box plot of age by gender'")
+    with col2:
+        analyze_button = st.button("🔍 Analyze", type="primary")
+    
+    # Display chat history
+    if st.session_state.chat_history:
+        st.write("### 📝 Chat History")
+        for i, (question, result) in enumerate(st.session_state.chat_history):
+            with st.expander(f"Q{i+1}: {question[:50]}...", expanded=False):
+                st.write(f"**Question:** {question}")
+                st.write(f"**Answer:** {result['insight']}")
+                
+                if "figure" in result and result["figure"] is not None:
+                    fig = result["figure"]
+                    if isinstance(fig, go.Figure):
+                        st.plotly_chart(fig, use_container_width=True)
+                    elif isinstance(fig, plt.Figure):
+                        st.pyplot(fig)
                     else:
-                        st.warning("No visualization was generated.")
-                    
-                    # Show the query if in debug mode
-                    if st.session_state.debug:
-                        st.subheader("Generated Pandas Query")
+                        st.warning(f"Unsupported figure type: {type(fig)}")
+    
+    # Process new question
+    if analyze_button and user_question:
+        with st.spinner("Creating your custom analysis..."):
+            try:
+                # Process the question
+                from nlp_interpreter import process_query
+                result = process_query(user_question, st.session_state.df)
+                
+                # Add to chat history
+                st.session_state.chat_history.append((user_question, result))
+                
+                # Display current result
+                st.success("✅ Analysis completed!")
+                st.write(f"**Your Question:** {user_question}")
+                st.write(f"**Answer:** {result['insight']}")
+                
+                if "figure" in result and result["figure"] is not None:
+                    fig = result["figure"]
+                    if isinstance(fig, go.Figure):
+                        st.plotly_chart(fig, use_container_width=True)
+                    elif isinstance(fig, plt.Figure):
+                        st.pyplot(fig)
+                    else:
+                        st.warning(f"Unsupported figure type: {type(fig)}")
+                else:
+                    st.info("No visualization was generated for this query.")
+                
+                # Show debug info if enabled
+                if st.session_state.debug:
+                    with st.expander("🔧 Debug Information", expanded=False):
                         if "pandas_query" in result.get("debug_info", {}):
                             st.code(result["debug_info"]["pandas_query"], language="python")
                         
-                        # Show result data if available
                         if "result_data" in result and result["result_data"] is not None:
-                            st.subheader("Query Result")
-                            if hasattr(result["result_data"], "shape"):  # DataFrame or Series
+                            st.subheader("Query Result Data")
+                            if hasattr(result["result_data"], "shape"):
                                 st.dataframe(result["result_data"])
                             else:
                                 st.write(result["result_data"])
                         
-                        # Show debugging info if enabled
                         if "debug_info" in result:
-                            st.subheader("Debug Information")
                             st.json(result["debug_info"])
                         
-                except Exception as e:
-                    st.error(f"Error during analysis: {str(e)}")
-                    if st.session_state.debug:
-                        st.error(traceback.format_exc())
-                        
-                        # Create a simple fallback visualization
-                        fig, ax = plt.subplots()
-                        ax.text(0.5, 0.5, f"Error in analysis: {str(e)}", 
-                                ha='center', va='center', fontsize=12, color='red')
-                        ax.axis('off')
-                        st.pyplot(fig)
-        else:
-            st.warning("Please enter a question to analyze your data.")
+            except Exception as e:
+                st.error(f"Error during analysis: {str(e)}")
+                if st.session_state.debug:
+                    st.error(traceback.format_exc())
+    
+    # Clear chat button
+    if st.session_state.chat_history:
+        if st.button("🗑️ Clear Chat History"):
+            st.session_state.chat_history = []
+            st.rerun()
 
 # Display history
 if st.session_state.query_history:

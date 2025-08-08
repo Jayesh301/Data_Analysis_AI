@@ -135,14 +135,29 @@ Live_Link : https://dataanalysisai.streamlit.app/
    ```
    pip install -r requirements.txt
    ```
-3. Create a `.env` file with your Gemini API key:
+3. **Set up your API key securely:**
+
+   **Option A: Using .env file (recommended for local development)**
+
+   ```bash
+   # Create a .env file in the project root
+   echo "GEMINI_API_KEY=your_actual_api_key_here" > .env
    ```
-   GEMINI_API_KEY=your_gemini_api_key_here
+
+   **Option B: Using Streamlit secrets (for deployment)**
+
+   ```bash
+   # Copy the template and add your key
+   cp .streamlit/secrets.toml.example .streamlit/secrets.toml
+   # Then edit .streamlit/secrets.toml and replace "your_actual_api_key_here" with your real API key
    ```
+
 4. Run the application:
    ```
    streamlit run app.py
    ```
+
+**⚠️ Security Note:** Never commit your actual API key to git. The `.gitignore` file is configured to exclude `.env` and `.streamlit/secrets.toml` files from version control.
 
 ## Deployment on Streamlit Community Cloud
 
