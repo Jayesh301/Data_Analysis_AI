@@ -96,29 +96,74 @@ if uploaded_file is not None:
             auto_results = st.session_state.auto_analysis_results
             
             # Display summary stats
-            with st.expander("Dataset Summary", expanded=True):
-                st.write(f"**Rows:** {auto_results['summary']['shape'][0]}, **Columns:** {auto_results['summary']['shape'][1]}")
+            st.header("📊 Dataset Summary")
+            
+            # Show cleaning information
+            if 'original_shape' in auto_results['summary']:
+                original_rows, original_cols = auto_results['summary']['original_shape']
+                current_rows, current_cols = auto_results['summary']['shape']
+                rows_removed = auto_results['summary'].get('rows_removed', 0)
+                cols_removed = auto_results['summary'].get('columns_removed', 0)
                 
-                # Display column types 
-                if 'numeric_columns' in auto_results['summary']:
-                    st.write(f"**Numeric columns ({len(auto_results['summary']['numeric_columns'])}):** {', '.join(auto_results['summary']['numeric_columns'])}")
+                st.write("### 🧹 Data Cleaning Summary")
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric("Original Size", f"{original_rows:,} rows × {original_cols} cols")
+                with col2:
+                    st.metric("Final Size", f"{current_rows:,} rows × {current_cols} cols")
                 
-                if 'categorical_columns' in auto_results['summary']:
-                    st.write(f"**Categorical columns ({len(auto_results['summary']['categorical_columns'])}):** {', '.join(auto_results['summary']['categorical_columns'])}")
+                # Show detailed cleaning information
+                duplicates_removed = auto_results['summary'].get('duplicates_removed', 0)
+                missing_filled = auto_results['summary'].get('missing_values_filled', 0)
+                cleaning_actions = []
                 
-                if 'date_columns' in auto_results['summary']:
-                    st.write(f"**Date columns ({len(auto_results['summary']['date_columns'])}):** {', '.join(auto_results['summary']['date_columns'])}")
+                if rows_removed > 0:
+                    cleaning_actions.append(f"🗑️ Removed {rows_removed:,} empty rows")
+                if cols_removed > 0:
+                    cleaning_actions.append(f"🗑️ Removed {cols_removed} empty columns")
+                if duplicates_removed > 0:
+                    cleaning_actions.append(f"🔄 Removed {duplicates_removed:,} duplicate rows")
+                if missing_filled > 0:
+                    cleaning_actions.append(f"🔧 Filled {missing_filled:,} missing values (forward/backward fill + mode)")
                 
-                # Show missing values
-                if sum(auto_results['summary']['missing_values'].values()) > 0:
-                    st.write("**Missing Values:**")
-                    missing_df = pd.DataFrame({
-                        'Column': list(auto_results['summary']['missing_values'].keys()),
-                        'Missing Count': list(auto_results['summary']['missing_values'].values()),
-                        'Missing Percentage': [f"{val:.2f}%" for val in auto_results['summary']['missing_percentage'].values()]
-                    })
-                    missing_df = missing_df[missing_df['Missing Count'] > 0].sort_values('Missing Count', ascending=False)
+                if cleaning_actions:
+                    st.success("✅ **Cleaning Actions Performed:**")
+                    for action in cleaning_actions:
+                        st.write(f"  {action}")
+                else:
+                    st.info("ℹ️ No cleaning needed - dataset was already clean!")
+                
+
+            
+            # Current dataset info
+            st.write("### 📊 Current Dataset Info")
+            st.write(f"**Rows:** {auto_results['summary']['shape'][0]:,}, **Columns:** {auto_results['summary']['shape'][1]}")
+            
+            # Display column types 
+            if 'numeric_columns' in auto_results['summary']:
+                st.write(f"**Numeric columns ({len(auto_results['summary']['numeric_columns'])}):** {', '.join(auto_results['summary']['numeric_columns'])}")
+            
+            if 'categorical_columns' in auto_results['summary']:
+                st.write(f"**Categorical columns ({len(auto_results['summary']['categorical_columns'])}):** {', '.join(auto_results['summary']['categorical_columns'])}")
+            
+            if 'date_columns' in auto_results['summary']:
+                st.write(f"**Date columns ({len(auto_results['summary']['date_columns'])}):** {', '.join(auto_results['summary']['date_columns'])}")
+            
+            # Check for any remaining missing values (should be none after cleaning)
+            total_missing = sum(auto_results['summary']['missing_values'].values())
+            if total_missing > 0:
+                st.write("### ⚠️ Data Quality Check")
+                missing_df = pd.DataFrame({
+                    'Column': list(auto_results['summary']['missing_values'].keys()),
+                    'Missing Count': list(auto_results['summary']['missing_values'].values()),
+                    'Missing Percentage': [f"{val:.2f}%" for val in auto_results['summary']['missing_percentage'].values()]
+                })
+                missing_df = missing_df[missing_df['Missing Count'] > 0].sort_values('Missing Count', ascending=False)
+                if len(missing_df) > 0:
                     st.dataframe(missing_df)
+                    st.warning("⚠️ Some missing values could not be filled automatically. This may affect analysis quality.")
+            else:
+                st.success("✅ Dataset is completely clean - no missing values!")
             
             # Display insights
             st.header("Automatic Insights")

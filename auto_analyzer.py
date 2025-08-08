@@ -5,6 +5,7 @@ import seaborn as sns
 import google.generativeai as genai
 import warnings
 import plotly.express as px
+from utils import clean_dataframe
 
 def auto_analyze_dataset(dataframe):
     """
@@ -29,8 +30,79 @@ def auto_analyze_dataset(dataframe):
         # Create a copy of the dataframe to avoid any issues
         df = dataframe.copy()
         
-        # 1. Basic dataset summary
+        # Store original shape and missing values before cleaning
+        original_shape = df.shape
+        original_missing_values = df.isna().sum().to_dict()
+        original_missing_percentage = (df.isna().sum() / len(df) * 100).to_dict()
+        total_original_missing = df.isna().sum().sum()
+        
+        # Clean the dataset automatically
+        df = clean_dataframe(
+            df,
+            drop_empty_rows=True,
+            drop_empty_cols=True,
+            drop_any_nan_rows=False  # Keep rows with some data
+        )
+        
+        # Additional cleaning steps
+        # Remove duplicate rows
+        duplicates_before = len(df)
+        df = df.drop_duplicates()
+        duplicates_removed = duplicates_before - len(df)
+        
+        # Convert object columns to appropriate types where possible
+        for col in df.select_dtypes(include=['object']).columns:
+            # Try to convert to numeric if possible
+            try:
+                df[col] = pd.to_numeric(df[col], errors='ignore')
+            except:
+                pass
+        
+        # Fill missing values using forward fill and backward fill
+        missing_before = df.isna().sum().sum()
+        
+        # For numeric columns: use forward fill, then backward fill
+        numeric_cols = df.select_dtypes(include=['number']).columns
+        if len(numeric_cols) > 0:
+            df[numeric_cols] = df[numeric_cols].fillna(method='ffill').fillna(method='bfill')
+        
+        # For categorical/text columns: use forward fill, then backward fill, then mode
+        categorical_cols = df.select_dtypes(include=['object', 'category']).columns
+        for col in categorical_cols:
+            # Forward fill and backward fill
+            df[col] = df[col].fillna(method='ffill').fillna(method='bfill')
+            
+            # If still missing, fill with mode (most frequent value)
+            if df[col].isna().any():
+                mode_value = df[col].mode()
+                if len(mode_value) > 0:
+                    df[col] = df[col].fillna(mode_value[0])
+                else:
+                    # If no mode, fill with a placeholder
+                    df[col] = df[col].fillna('Unknown')
+        
+        # For datetime columns: use forward fill, then backward fill
+        datetime_cols = df.select_dtypes(include=['datetime64']).columns
+        if len(datetime_cols) > 0:
+            df[datetime_cols] = df[datetime_cols].fillna(method='ffill').fillna(method='bfill')
+        
+        missing_after = df.isna().sum().sum()
+        missing_filled = missing_before - missing_after
+        
+        # Store cleaning statistics
+        results["summary"]["duplicates_removed"] = duplicates_removed
+        results["summary"]["missing_values_filled"] = missing_filled
+        
+        # Store original missing values info (before cleaning)
+        results["summary"]["original_missing_values"] = original_missing_values
+        results["summary"]["original_missing_percentage"] = original_missing_percentage
+        results["summary"]["total_original_missing"] = total_original_missing
+        
+        # 1. Basic dataset summary (after cleaning)
+        results["summary"]["original_shape"] = original_shape
         results["summary"]["shape"] = df.shape
+        results["summary"]["rows_removed"] = original_shape[0] - df.shape[0]
+        results["summary"]["columns_removed"] = original_shape[1] - df.shape[1]
         results["summary"]["columns"] = list(df.columns)
         results["summary"]["dtypes"] = {col: str(df[col].dtype) for col in df.columns}
         results["summary"]["missing_values"] = df.isna().sum().to_dict()
