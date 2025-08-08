@@ -71,10 +71,16 @@ def debug_slice(df, x, y):
 
 # ---------- 3. Plotting helpers ----------
 def make_plot(df, x, y=None, title=None, top_k=10, theme="whitegrid"):
-    # Set global theme and background for visibility
-    sns.set_theme(style="whitegrid", palette="muted")
+    # Set modern theme and colors
+    modern_colors = ['#6366F1', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981']
+    sns.set_theme(style="whitegrid", palette=modern_colors)
     import matplotlib.pyplot as plt
-    plt.rcParams["axes.facecolor"] = "#F8F9FA"
+    plt.rcParams["axes.facecolor"] = "#FAFAFA"
+    plt.rcParams["figure.facecolor"] = "white"
+    plt.rcParams["axes.edgecolor"] = "#E5E7EB"
+    plt.rcParams["axes.linewidth"] = 0.8
+    plt.rcParams["grid.color"] = "#F3F4F6"
+    plt.rcParams["grid.alpha"] = 0.3
     x_type = classify_columns(df).get(x, "text") if x else None
     y_type = classify_columns(df).get(y, "text") if y else None
     fig, ax = plt.subplots()
@@ -130,11 +136,11 @@ def make_plot(df, x, y=None, title=None, top_k=10, theme="whitegrid"):
 # ---------- 4. Global theme, labels, layout ----------
 def tidy_ax(ax, x=None, y=None, title=None):
     if title:
-        ax.set_title(title)
+        ax.set_title(title, fontsize=16, fontweight='bold', color='#1F2937', pad=20)
     if x:
-        ax.set_xlabel(x)
+        ax.set_xlabel(x, fontsize=12, color='#4B5563')
     if y:
-        ax.set_ylabel(y)
+        ax.set_ylabel(y, fontsize=12, color='#4B5563')
     import matplotlib.pyplot as plt
     plt.tight_layout()
     return ax

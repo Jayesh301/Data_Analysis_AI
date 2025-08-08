@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 import io
 import os
 import google.generativeai as genai
@@ -147,7 +148,13 @@ if uploaded_file is not None:
                 # Display current visualization
                 current_viz = auto_results['visualizations'][st.session_state.current_viz_index]
                 st.subheader(f"{st.session_state.current_viz_index + 1}/{len(auto_results['visualizations'])}: {current_viz['title']}")
-                st.pyplot(current_viz['figure'])
+                fig = current_viz['figure']
+                if isinstance(fig, go.Figure):
+                    st.plotly_chart(fig, use_container_width=True)
+                elif isinstance(fig, plt.Figure):
+                    st.pyplot(fig)
+                else:
+                    st.warning(f"Unsupported figure type: {type(fig)}")
                 
                 # Show visualization details
                 viz_type = current_viz['type']
@@ -155,15 +162,22 @@ if uploaded_file is not None:
                     st.write(f"Correlation coefficient: {current_viz['correlation']:.2f}")
                 
                 # Allow downloading the current figure
+                fig_to_download = current_viz['figure']
                 buf = io.BytesIO()
-                current_viz['figure'].savefig(buf, format='png')
-                buf.seek(0)
-                st.download_button(
-                    label="Download this visualization",
-                    data=buf,
-                    file_name=f"{current_viz['title'].replace(' ', '_')}.png",
-                    mime="image/png"
-                )
+                
+                if isinstance(fig_to_download, go.Figure):
+                    fig_to_download.write_image(buf, format="png")
+                elif isinstance(fig_to_download, plt.Figure):
+                    fig_to_download.savefig(buf, format="png")
+                
+                if buf.tell() > 0:
+                    buf.seek(0)
+                    st.download_button(
+                        label="Download this visualization",
+                        data=buf,
+                        file_name=f"{current_viz['title'].replace(' ', '_')}.png",
+                        mime="image/png"
+                    )
             
             # Show error if any
             if auto_results['error']:
@@ -195,7 +209,13 @@ if st.session_state.df is not None:
                     st.write(result["insight"])
                     
                     if "figure" in result and result["figure"] is not None:
-                        st.pyplot(result["figure"])
+                        fig = result["figure"]
+                        if isinstance(fig, go.Figure):
+                            st.plotly_chart(fig, use_container_width=True)
+                        elif isinstance(fig, plt.Figure):
+                            st.pyplot(fig)
+                        else:
+                            st.warning(f"Unsupported figure type: {type(fig)}")
                     else:
                         st.warning("No visualization was generated.")
                     
